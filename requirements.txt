@@ -1,0 +1,19 @@
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.8.0
+torchaudio==2.8.0
+transformers==5.13.0
+sentence-transformers>=5.6.1
+tokenizers>=0.22.2
+huggingface_hub>=1.20.0
+accelerate>=1.14.0
+numpy>=2.0.0
+soundfile
+librosa
+pydub
+hf_transfer
+safetensors>=0.6.0
+sentencepiece
+protobuf
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.0
