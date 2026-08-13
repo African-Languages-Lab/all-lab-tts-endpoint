@@ -26,7 +26,7 @@ _INIT_ERROR: Optional[str] = None
 
 class TTSRequest(BaseModel):
     inputs: str = Field(..., min_length=1, description="Text to synthesize")
-    language: str = Field("hausa", description="hausa|igbo|yoruba|twi|ewe")
+    language: str = Field("hausa", description="One of the 38 supported languages, e.g. hausa|igbo|yoruba|twi|ewe|zulu|swahili|...")
     num_step: int = Field(24, ge=8, le=48)
     guidance_scale: float = Field(2.0, ge=0.0, le=4.0)
     denoise: bool = True
@@ -90,11 +90,13 @@ def health():
 
 @app.get("/")
 def root():
+    from handler import MODELS
+
     return {
         "service": "ALL Lab TTS Inference Endpoint",
         "health": "/health",
         "tts": "POST /",
-        "languages": ["hausa", "igbo", "yoruba", "twi", "ewe"],
+        "languages": sorted(MODELS.keys()),
         "ready": _READY,
     }
 

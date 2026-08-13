@@ -1,8 +1,9 @@
 """Custom Hugging Face Inference Endpoint handler — African Languages Lab TTS.
 
-Multi-language OmniVoice router: one endpoint, five private weight packs
-(hausa, igbo, yoruba, twi, ewe). Keeps one language loaded in VRAM at a time;
-switching language unloads the current pack and loads the requested one.
+Multi-language OmniVoice router: one endpoint, 38 private weight packs (the
+Individual-TTS-Best-HumanEval collection). Keeps one language loaded in VRAM
+at a time; switching language unloads the current pack and loads the
+requested one.
 
 Payload:
     {"inputs": "Sannu da safe", "language": "hausa",
@@ -29,12 +30,49 @@ import torch
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("all-lab-tts-endpoint")
 
+# The original 5 pushed models were trained with ISO-style language tokens;
+# the other 33 (all_38_languages pipeline) use the plain language name as
+# their language_id directly -- both conventions are correct for their
+# respective checkpoints, not a typo.
 MODELS: Dict[str, Dict[str, str]] = {
-    "hausa": {"repo": "African-Languages-Lab/all-lab-tts-hausa", "language_id": "ha", "display": "Hausa"},
-    "igbo": {"repo": "African-Languages-Lab/all-lab-tts-igbo", "language_id": "ig", "display": "Igbo"},
-    "yoruba": {"repo": "African-Languages-Lab/all-lab-tts-yoruba", "language_id": "yo", "display": "Yoruba"},
-    "twi": {"repo": "African-Languages-Lab/all-lab-tts-twi", "language_id": "tw", "display": "Twi"},
-    "ewe": {"repo": "African-Languages-Lab/all-lab-tts-ewe", "language_id": "ewe", "display": "Ewe"},
+    "hausa": {"repo": "all-lab/all-lab-tts-hausa", "language_id": "ha", "display": "Hausa"},
+    "igbo": {"repo": "all-lab/all-lab-tts-igbo", "language_id": "ig", "display": "Igbo"},
+    "yoruba": {"repo": "all-lab/all-lab-tts-yoruba", "language_id": "yo", "display": "Yoruba"},
+    "twi": {"repo": "all-lab/all-lab-tts-twi", "language_id": "tw", "display": "Twi"},
+    "ewe": {"repo": "all-lab/all-lab-tts-ewe", "language_id": "ewe", "display": "Ewe"},
+    "afrikaans": {"repo": "all-lab/all-lab-tts-afrikaans", "language_id": "afrikaans", "display": "Afrikaans"},
+    "amharic": {"repo": "all-lab/all-lab-tts-amharic", "language_id": "amharic", "display": "Amharic"},
+    "arabic": {"repo": "all-lab/all-lab-tts-arabic", "language_id": "arabic", "display": "Arabic"},
+    "bambara": {"repo": "all-lab/all-lab-tts-bambara", "language_id": "bambara", "display": "Bambara"},
+    "bemba": {"repo": "all-lab/all-lab-tts-bemba", "language_id": "bemba", "display": "Bemba"},
+    "berber": {"repo": "all-lab/all-lab-tts-berber", "language_id": "berber", "display": "Berber"},
+    "chichewa": {"repo": "all-lab/all-lab-tts-chichewa", "language_id": "chichewa", "display": "Chichewa"},
+    "english": {"repo": "all-lab/all-lab-tts-english", "language_id": "english", "display": "English"},
+    "fon": {"repo": "all-lab/all-lab-tts-fon", "language_id": "fon", "display": "Fon"},
+    "fula": {"repo": "all-lab/all-lab-tts-fula", "language_id": "fula", "display": "Fula"},
+    "kanuri": {"repo": "all-lab/all-lab-tts-kanuri", "language_id": "kanuri", "display": "Kanuri"},
+    "kikuyu": {"repo": "all-lab/all-lab-tts-kikuyu", "language_id": "kikuyu", "display": "Kikuyu"},
+    "kinyarwanda": {"repo": "all-lab/all-lab-tts-kinyarwanda", "language_id": "kinyarwanda", "display": "Kinyarwanda"},
+    "krio": {"repo": "all-lab/all-lab-tts-krio", "language_id": "krio", "display": "Krio"},
+    "lingala": {"repo": "all-lab/all-lab-tts-lingala", "language_id": "lingala", "display": "Lingala"},
+    "luganda": {"repo": "all-lab/all-lab-tts-luganda", "language_id": "luganda", "display": "Luganda"},
+    "malagasy": {"repo": "all-lab/all-lab-tts-malagasy", "language_id": "malagasy", "display": "Malagasy"},
+    "ndebele": {"repo": "all-lab/all-lab-tts-ndebele", "language_id": "ndebele", "display": "Ndebele"},
+    "oromo": {"repo": "all-lab/all-lab-tts-oromo", "language_id": "oromo", "display": "Oromo"},
+    "sepedi": {"repo": "all-lab/all-lab-tts-sepedi", "language_id": "sepedi", "display": "Sepedi"},
+    "sesotho": {"repo": "all-lab/all-lab-tts-sesotho", "language_id": "sesotho", "display": "Sesotho"},
+    "shona": {"repo": "all-lab/all-lab-tts-shona", "language_id": "shona", "display": "Shona"},
+    "somali": {"repo": "all-lab/all-lab-tts-somali", "language_id": "somali", "display": "Somali"},
+    "swahili": {"repo": "all-lab/all-lab-tts-swahili", "language_id": "swahili", "display": "Swahili"},
+    "swati": {"repo": "all-lab/all-lab-tts-swati", "language_id": "swati", "display": "Swati"},
+    "tigrinya": {"repo": "all-lab/all-lab-tts-tigrinya", "language_id": "tigrinya", "display": "Tigrinya"},
+    "tsonga": {"repo": "all-lab/all-lab-tts-tsonga", "language_id": "tsonga", "display": "Tsonga"},
+    "tswana": {"repo": "all-lab/all-lab-tts-tswana", "language_id": "tswana", "display": "Tswana"},
+    "umbundu": {"repo": "all-lab/all-lab-tts-umbundu", "language_id": "umbundu", "display": "Umbundu"},
+    "venda": {"repo": "all-lab/all-lab-tts-venda", "language_id": "venda", "display": "Venda"},
+    "wolof": {"repo": "all-lab/all-lab-tts-wolof", "language_id": "wolof", "display": "Wolof"},
+    "xhosa": {"repo": "all-lab/all-lab-tts-xhosa", "language_id": "xhosa", "display": "Xhosa"},
+    "zulu": {"repo": "all-lab/all-lab-tts-zulu", "language_id": "zulu", "display": "Zulu"},
 }
 
 DEFAULT_LANGUAGE = os.environ.get("ALL_LAB_DEFAULT_LANGUAGE", "hausa").strip().lower()
