@@ -1,8 +1,9 @@
 # Hugging Face Inference Endpoints — custom container (NOT a Space).
-# Build:  docker build --platform linux/amd64 -t all-lab/all-lab-tts:ie .
-# Push:   docker push <registry>/all-lab-tts:ie
-# Deploy: Inference Endpoints → Custom Container → image URL, port 80
-#          Set secret HF_TOKEN (read access to African-Languages-Lab/all-lab-tts-*)
+# Built automatically by .github/workflows/build-and-push.yml on every push
+# to main -> ghcr.io/johnemekaeze/all-lab-tts-endpoint:latest
+# Deploy: Inference Endpoints -> Custom Container -> that image URL, port 80
+#          Set secret HF_TOKEN (read access to all-lab/all-lab-tts-* — the
+#          38 Individual-TTS-Best-HumanEval model repos handler.py routes to)
 
 FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
 
@@ -32,5 +33,5 @@ COPY handler.py app.py ./
 # Inference Endpoints default health/probe port
 EXPOSE 80
 
-# Do not bake the 5 language packs into the image — load from Hub at runtime.
+# Do not bake the 38 language packs into the image — load from Hub at runtime.
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
